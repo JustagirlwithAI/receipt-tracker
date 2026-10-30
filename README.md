@@ -2,6 +2,10 @@
 
 A free, private expense tracker that lives in a folder on **your own computer**. Drop a photo of a receipt into a Claude chat, say "log this", and it shows up on a dashboard. No accounts, no logins, no API keys, nothing uploaded anywhere.
 
+![The Receipt Tracker dashboard, shown with made-up sample receipts](docs/screenshot.png)
+
+*The dashboard, shown with made-up sample receipts.*
+
 ## What you get
 
 - A **dashboard** (`dashboard.html`) with this month vs last month, spend per month, spend by category, and a searchable list of receipts. Each receipt links to its saved photo.
