@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receipt Tracker</title>
+<style>
+  :root { --bg:#faf9f7; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e7e5e4; --brand:#0f766e; --brand2:#0284c7; --warn:#b45309; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#161513; --card:#1f1e1c; --ink:#f3f4f6; --muted:#a8a29e; --line:#322f2c; --brand:#2dd4bf; --brand2:#38bdf8; --warn:#fbbf24; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 system-ui, "Segoe UI", sans-serif; }
+  .wrap { max-width:1100px; margin:0 auto; padding:16px; }
+  h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:0 0 10px; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:12px 0; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+  @media (max-width:760px) { .grid4 { grid-template-columns:1fr 1fr; } .grid2 { grid-template-columns:1fr; } }
+  .k { color:var(--muted); font-size:13px; } .v { font-size:22px; font-weight:650; }
+  .up { color:#dc2626; } .down { color:#16a34a; }
+  .filters { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  select, input, button { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); }
+  button { cursor:pointer; } button:hover { border-color:var(--brand); }
+  .bars { display:flex; align-items:flex-end; gap:6px; height:170px; padding-top:8px; }
+  .bar { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; font-size:11px; color:var(--muted); min-width:0; }
+  .bar i { display:block; width:100%; background:var(--brand); border-radius:4px 4px 0 0; min-height:2px; }
+  .bar span { margin-top:4px; white-space:nowrap; }
+  .hrow { display:grid; grid-template-columns:130px 1fr 90px; gap:8px; align-items:center; font-size:14px; margin:6px 0; }
+  .hrow i { display:block; height:12px; border-radius:6px; background:var(--brand2); }
+  .hrow b { text-align:right; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; padding:6px; border-bottom:1px solid var(--line); }
+  td { padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  td.r, th.r { text-align:right; white-space:nowrap; }
+  td:nth-child(2), td:nth-child(3) { white-space:nowrap; }
+  .tag { font-size:12px; padding:1px 7px; border-radius:99px; border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
+  .tag.corr { color:var(--warn); border-color:var(--warn); }
+  .thumb { width:40px; height:40px; object-fit:cover; border-radius:6px; background:var(--line); display:block; }
+  .empty { text-align:center; color:var(--muted); padding:30px 10px; }
+  a { color:var(--brand2); }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔒 Receipt Tracker</h1>
+  <div class="sub">Receipts are added by Claude and never edited. Mistakes are fixed with a correction line.</div>
+
+  <div class="card filters">
+    <select id="fPerson" aria-label="Person"></select>
+    <select id="fPurpose" aria-label="Purpose"><option value="">All purposes</option><option>Personal</option><option>Work</option><option>Reimbursable</option></select>
+    <select id="fMonth" aria-label="Month"></select>
+    <select id="fCat" aria-label="Category"></select>
+    <input id="fSearch" type="search" placeholder="Search store or items" aria-label="Search">
+    <button id="csv" style="margin-left:auto">Download CSV</button>
+  </div>
+
+  <div class="grid4">
+    <div class="card"><div class="k">This month</div><div class="v" id="cThis">–</div></div>
+    <div class="card"><div class="k">Last month</div><div class="v" id="cLast">–</div><div class="k" id="cChange"></div></div>
+    <div class="card"><div class="k">Receipts (current filter)</div><div class="v" id="cCount">–</div></div>
+    <div class="card"><div class="k">Biggest category (current filter)</div><div class="v" id="cTop">–</div><div class="k" id="cTopAmt"></div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card"><h2>Spend per month</h2><div class="bars" id="months"></div></div>
+    <div class="card"><h2>By category</h2><div id="cats"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Receipts <span class="k" id="total"></span></h2>
+    <div class="scroll"><table>
+      <thead><tr><th></th><th>ID</th><th>Date</th><th>Store</th><th>Category</th><th>Purpose</th><th>By</th><th class="r">Amount</th><th class="r" id="thHome"></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="empty" id="empty" hidden>No receipts yet. Drop a receipt photo into the Claude chat to add the first one.</div>
+  </div>
+</div>
+
+<script src="settings.js"></script>
+<script src="data.js"></script>
+<script>
+const S = Object.assign({ currency: "GHS", symbol: "₵" }, window.SETTINGS || {});
+const all = (window.RECEIPTS || []).map(r => ({ ...r, ghs: Math.round(r.amount * (r.rate || 1) * 100) / 100, month: r.date.slice(0, 7) }));
+const $ = id => document.getElementById(id);
+const ghs = n => S.symbol + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (n, c) => c === S.currency ? ghs(n) : c + " " + n.toLocaleString("en-GB", { minimumFractionDigits: 2 });
+const mlabel = m => new Date(m + "-01T00:00:00Z").toLocaleDateString("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const sum = rs => Math.round(rs.reduce((s, r) => s + r.ghs, 0) * 100) / 100;
+const addM = (m, d) => { const [y, mo] = m.split("-").map(Number); const x = new Date(Date.UTC(y, mo - 1 + d, 1)); return x.getUTCFullYear() + "-" + String(x.getUTCMonth() + 1).padStart(2, "0"); };
+
+$("thHome").textContent = "In " + S.symbol;
+function fill(sel, first, values) {
+  sel.innerHTML = `<option value="">${first}</option>` + values.map(v => `<option>${esc(v)}</option>`).join("");
+}
+fill($("fPerson"), "Everyone", [...new Set(all.map(r => r.by))].sort());
+fill($("fMonth"), "All months", [...new Set(all.map(r => r.month))].sort().reverse());
+fill($("fCat"), "All categories", [...new Set(all.map(r => r.category))].sort());
+
+let shown = [];
+function render() {
+  const p = $("fPerson").value, pu = $("fPurpose").value, m = $("fMonth").value, c = $("fCat").value, q = $("fSearch").value.trim().toLowerCase();
+  const base = all.filter(r => (!p || r.by === p) && (!pu || r.purpose === pu));
+  shown = base.filter(r => (!m || r.month === m) && (!c || r.category === c) && (!q || (r.store + " " + (r.items || "")).toLowerCase().includes(q)))
+              .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  const now = new Date().toISOString().slice(0, 7), prev = addM(now, -1);
+  const t = sum(base.filter(r => r.month === now)), l = sum(base.filter(r => r.month === prev));
+  $("cThis").textContent = ghs(t); $("cLast").textContent = ghs(l);
+  $("cChange").innerHTML = l ? `<span class="${t > l ? "up" : "down"}">${t > l ? "↑" : "↓"} ${Math.abs((t - l) / l * 100).toFixed(0)}% vs last month</span>` : "";
+  $("cCount").textContent = shown.filter(r => r.status !== "Correction").length;
+
+  const cats = {}; shown.forEach(r => cats[r.category] = (cats[r.category] || 0) + r.ghs);
+  const catList = Object.entries(cats).filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]);
+  $("cTop").textContent = catList[0] ? catList[0][0] : "–"; $("cTopAmt").textContent = catList[0] ? ghs(catList[0][1]) : "";
+  const max = catList[0] ? catList[0][1] : 1;
+  $("cats").innerHTML = catList.length ? catList.map(([n, v]) => `<div class="hrow"><span>${esc(n)}</span><i style="width:${Math.max(2, v / max * 100)}%"></i><b>${ghs(v)}</b></div>`).join("") : '<div class="empty">Nothing yet.</div>';
+
+  const months = Array.from({ length: 12 }, (_, i) => addM(now, i - 11));
+  const mt = months.map(x => sum(base.filter(r => r.month === x))); const mm = Math.max(1, ...mt);
+  $("months").innerHTML = months.map((x, i) => `<div class="bar" title="${mlabel(x)}: ${ghs(mt[i])}"><i style="height:${mt[i] / mm * 130}px"></i><span>${mlabel(x).split(" ")[0]}</span></div>`).join("");
+
+  $("total").textContent = shown.length ? "· " + ghs(sum(shown)) + " in this view" : "";
+  $("empty").hidden = all.length > 0;
+  $("rows").innerHTML = shown.map(r => {
+    const img = r.file && /\.(jpe?g|png|webp|gif)$/i.test(r.file) ? `<img class="thumb" src="${esc(r.file)}" alt="">` : (r.file ? "📄" : "");
+    const link = r.file ? `<a href="${esc(r.file)}" target="_blank">${esc(r.id)}</a>` : esc(r.id);
+    return `<tr><td>${img}</td><td>${link}</td><td>${esc(r.date)}</td><td>${esc(r.store)}${r.status === "Correction" ? ` <span class="tag corr">fixes ${esc(r.corrects)}</span>` : ""}${r.notes ? `<div class="k">${esc(r.notes)}</div>` : ""}</td><td>${esc(r.category)}</td><td><span class="tag">${esc(r.purpose)}</span></td><td>${esc(r.by)}</td><td class="r">${money(r.amount, r.currency)}</td><td class="r"><b>${ghs(r.ghs)}</b></td></tr>`;
+  }).join("");
+}
+["fPerson", "fPurpose", "fMonth", "fCat"].forEach(id => $(id).onchange = render);
+$("fSearch").oninput = render;
+$("csv").onclick = () => {
+  const head = ["ID", "Date", "Store", "Category", "Purpose", "Spent by", "Amount", "Currency", "Rate to " + S.currency, "Amount " + S.currency, "Payment", "Status", "Fixes", "Items", "Notes", "Photo"];
+  const e = v => /[",\n]/.test(String(v ?? "")) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v ?? "");
+  const lines = [head, ...shown.map(r => [r.id, r.date, r.store, r.category, r.purpose, r.by, r.amount, r.currency, r.rate || 1, r.ghs, r.payment, r.status, r.corrects, (r.items || "").replace(/\n/g, "; "), r.notes, r.file])];
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + lines.map(l => l.map(e).join(",")).join("\n")], { type: "text/csv" }));
+  a.download = "receipts.csv"; a.click();
+};
+render();
+</script>
+</body>
+</html>

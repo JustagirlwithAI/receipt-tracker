@@ -1,0 +1,5 @@
+# Your private data stays on your computer
+data.js
+receipts/*
+!receipts/.gitkeep
+
